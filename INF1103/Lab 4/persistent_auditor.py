@@ -6,17 +6,16 @@ rules without crashing. Now split into functions so new features (tax,
 discounts, etc.) can be added without touching the main loop.
 """
 
-import json
 import os
 
 TAX_RATE = 0.10
 OVERSTOCK_LIMIT = 500
-INVENTORY_FILE = "inventory.json"
+INVENTORY_FILE = "inventory.txt"
 
 
 def load_inventory():
     """
-    Reads the previously saved inventory total from disk.
+    Reads the previously saved inventory total from inventory.txt.
     Returns 0 if the file doesn't exist or can't be parsed, so the
     program can always start cleanly.
     """
@@ -25,17 +24,21 @@ def load_inventory():
 
     try:
         with open(INVENTORY_FILE, "r") as f:
-            data = json.load(f)
-            return data.get("total_inventory", 0)
-    except (json.JSONDecodeError, IOError):
+            for line in f:
+                if line.startswith("Total:"):
+                    return int(line.split(":", 1)[1].strip())
+    except (IOError, ValueError):
         return 0
 
+    return 0
 
-def save_inventory(total_inventory):
-    """Writes the current inventory total to disk for the next session."""
+
+def save_inventory(total_inventory, transaction_history):
+    """Writes the final total and transaction history to inventory.txt."""
     try:
         with open(INVENTORY_FILE, "w") as f:
-            json.dump({"total_inventory": total_inventory}, f)
+            f.write(f"Total: {total_inventory}\n")
+            f.write(f"History: {transaction_history}\n")
     except IOError as e:
         print(f"  ⚠️  Warning: could not save inventory ({e})")
 
@@ -91,7 +94,7 @@ def main():
     failed_entries = 0
     deliveries_processed = 0
     total_tax_collected = 0.0
-    transaction_history = []  # stores every valid transaction amount
+    transaction_history = []
 
     print("=== Smart Inventory Auditor (Modular) ===")
     print("Enter stock quantities one at a time. Type 'quit' to finish.\n")
@@ -102,6 +105,7 @@ def main():
         result = get_valid_input()
 
         if result == "quit":
+            save_inventory(total_inventory, transaction_history)
             break
 
         if result is None:
@@ -126,7 +130,6 @@ def main():
         elif total_inventory == OVERSTOCK_LIMIT:
             print("  ⚠️  Inventory is exactly at capacity. Next entry will trigger an alert.\n")
 
-    save_inventory(total_inventory)
     generate_report(total_inventory, failed_entries, deliveries_processed, total_tax_collected, transaction_history)
 
 
