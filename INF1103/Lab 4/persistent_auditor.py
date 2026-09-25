@@ -1,11 +1,12 @@
 """
-Smart Inventory Auditor (Modular Version)
+Smart Inventory Auditor (persostent_auditor Version)
 ------------------------------------------
 Processes daily stock deliveries. Validates each entry against business
 rules without crashing. Now split into functions so new features (tax,
 discounts, etc.) can be added without touching the main loop.
 """
 
+import ast
 import os
 
 TAX_RATE = 0.10
@@ -15,22 +16,27 @@ INVENTORY_FILE = "inventory.txt"
 
 def load_inventory():
     """
-    Reads the previously saved inventory total from inventory.txt.
-    Returns 0 if the file doesn't exist or can't be parsed, so the
-    program can always start cleanly.
+    Reads the previously saved inventory total and order history from
+    inventory.txt. Returns (0, []) if the file doesn't exist or can't be
+    parsed, so the program can always start cleanly.
     """
     if not os.path.exists(INVENTORY_FILE):
-        return 0
+        return 0, []
+
+    total_inventory = 0
+    transaction_history = []
 
     try:
         with open(INVENTORY_FILE, "r") as f:
             for line in f:
                 if line.startswith("Total:"):
-                    return int(line.split(":", 1)[1].strip())
-    except (IOError, ValueError):
-        return 0
+                    total_inventory = int(line.split(":", 1)[1].strip())
+                elif line.startswith("History:"):
+                    transaction_history = ast.literal_eval(line.split(":", 1)[1].strip())
+    except (IOError, ValueError, SyntaxError):
+        return 0, []
 
-    return 0
+    return total_inventory, transaction_history
 
 
 def save_inventory(total_inventory, transaction_history):
@@ -39,8 +45,19 @@ def save_inventory(total_inventory, transaction_history):
         with open(INVENTORY_FILE, "w") as f:
             f.write(f"Total: {total_inventory}\n")
             f.write(f"History: {transaction_history}\n")
+        print("Order successfully saved to inventory.txt")
     except IOError as e:
         print(f"  ⚠️  Warning: could not save inventory ({e})")
+
+
+def display_orders(transaction_history):
+    """Prints the current list of orders, if any."""
+    if not transaction_history:
+        return
+    print("Current Orders:\n")
+    for order_id, product_name, quantity in transaction_history:
+        print(f"{order_id}, {product_name}, {quantity}")
+    print()
 
 
 def get_valid_input():
@@ -90,16 +107,18 @@ def generate_report(total_units, failed_attempts, deliveries_processed, total_ta
 
 
 def main():
-    total_inventory = load_inventory()
+    total_inventory, transaction_history = load_inventory()
     failed_entries = 0
     deliveries_processed = 0
     total_tax_collected = 0.0
-    transaction_history = []
+    next_order_id = max((order[0] for order in transaction_history), default=1000) + 1
 
     print("=== Smart Inventory Auditor (Modular) ===")
     print("Enter stock quantities one at a time. Type 'quit' to finish.\n")
     if total_inventory > 0:
         print(f"📦 Loaded existing inventory: {total_inventory} units\n")
+
+    display_orders(transaction_history)
 
     while True:
         result = get_valid_input()
@@ -114,13 +133,19 @@ def main():
 
         quantity = result
 
+        product_name = input("Enter Product Name: ")
+
         total_inventory = process_delivery(total_inventory, quantity)
         deliveries_processed += 1
-        transaction_history.append(quantity)
+
+        order_id = next_order_id
+        next_order_id += 1
+        transaction_history.append((order_id, product_name, quantity))
 
         delivery_tax = calculate_tax(quantity)
         total_tax_collected += delivery_tax
 
+        print(f"\nNew Order Added:\n{order_id},{product_name},{quantity}")
         print(f"  ✅ Accepted. Delivery tax: {delivery_tax:.2f} | Running total: {total_inventory}\n")
 
         if total_inventory > OVERSTOCK_LIMIT:
