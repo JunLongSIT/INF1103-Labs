@@ -28,7 +28,6 @@ def load_inventory():
             data = json.load(f)
             return data.get("total_inventory", 0)
     except (json.JSONDecodeError, IOError):
-        # Corrupted or unreadable file — fall back to a fresh start
         return 0
 
 
@@ -77,13 +76,14 @@ def calculate_tax(amount):
     return amount * TAX_RATE
 
 
-def generate_report(total_units, failed_attempts, deliveries_processed, total_tax):
+def generate_report(total_units, failed_attempts, deliveries_processed, total_tax, transaction_history):
     """Prints the final end-of-session summary."""
     print("\n=== End of Session Report ===")
     print(f"Total Deliveries Processed: {deliveries_processed}")
     print(f"Total Units Processed: {total_units}")
     print(f"Total Tax Collected: {total_tax:.2f}")
     print(f"Number of Failed/Rejected Entries: {failed_attempts}")
+    print(f"Transaction History: {transaction_history}")
 
 
 def main():
@@ -91,6 +91,7 @@ def main():
     failed_entries = 0
     deliveries_processed = 0
     total_tax_collected = 0.0
+    transaction_history = []  # stores every valid transaction amount
 
     print("=== Smart Inventory Auditor (Modular) ===")
     print("Enter stock quantities one at a time. Type 'quit' to finish.\n")
@@ -111,6 +112,7 @@ def main():
 
         total_inventory = process_delivery(total_inventory, quantity)
         deliveries_processed += 1
+        transaction_history.append(quantity)
 
         delivery_tax = calculate_tax(quantity)
         total_tax_collected += delivery_tax
@@ -125,7 +127,7 @@ def main():
             print("  ⚠️  Inventory is exactly at capacity. Next entry will trigger an alert.\n")
 
     save_inventory(total_inventory)
-    generate_report(total_inventory, failed_entries, deliveries_processed, total_tax_collected)
+    generate_report(total_inventory, failed_entries, deliveries_processed, total_tax_collected, transaction_history)
 
 
 if __name__ == "__main__":
