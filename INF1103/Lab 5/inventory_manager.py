@@ -1,161 +1,169 @@
 """
-Smart Inventory Auditor (persistent_auditor Version)
-------------------------------------------
-Processes daily stock deliveries. Validates each entry against business
-rules without crashing. Now split into functions so new features (tax,
-discounts, etc.) can be added without touching the main loop.
+Inventory Management System
+----------------------------
+Data representation: each product is stored as a dictionary with keys
+(id, name, price, stock). All products are kept in a list of dictionaries.
+Inventory is persisted to inventory.json between runs.
 """
 
-import ast
+import json
 import os
 
-TAX_RATE = 0.10
-OVERSTOCK_LIMIT = 500
-INVENTORY_FILE = "inventory.txt"
+INVENTORY_FILE = "inventory.json"
+
+
+# ---------------------------------------------------------------------
+# Data representation
+# ---------------------------------------------------------------------
+def default_inventory():
+    """Returns a starting list of at least three product dictionaries."""
+    return [
+        {"id": "P001", "name": "Laptop", "price": 1200.00, "stock": 15},
+        {"id": "P002", "name": "Mouse", "price": 25.50, "stock": 40},
+        {"id": "P003", "name": "Keyboard", "price": 45.00, "stock": 25},
+    ]
 
 
 def load_inventory():
     """
-    Reads the previously saved inventory total and order history from
-    inventory.txt. Returns (0, []) if the file doesn't exist or can't be
-    parsed, so the program can always start cleanly.
+    Loads the product list from inventory.json.
+    Falls back to the default inventory if the file is missing or corrupt.
     """
-    if not os.path.exists(INVENTORY_FILE):
-        return 0, []
-
-    total_inventory = 0
-    transaction_history = []
-
-    try:
-        with open(INVENTORY_FILE, "r") as f:
-            for line in f:
-                if line.startswith("Total:"):
-                    total_inventory = int(line.split(":", 1)[1].strip())
-                elif line.startswith("History:"):
-                    transaction_history = ast.literal_eval(line.split(":", 1)[1].strip())
-    except (IOError, ValueError, SyntaxError):
-        return 0, []
-
-    return total_inventory, transaction_history
+    if os.path.exists(INVENTORY_FILE):
+        print(f"{INVENTORY_FILE} found.")
+        try:
+            with open(INVENTORY_FILE, "r") as f:
+                products = json.load(f)
+            print("Inventory loaded successfully.\n")
+            return products
+        except (IOError, json.JSONDecodeError) as e:
+            print(f"  ⚠️  Could not read {INVENTORY_FILE} ({e}). Starting with default inventory.\n")
+            return default_inventory()
+    else:
+        print(f"{INVENTORY_FILE} not found. Starting with default inventory.\n")
+        return default_inventory()
 
 
-def save_inventory(total_inventory, transaction_history):
-    """Writes the final total and transaction history to inventory.txt."""
+def save_inventory(products):
+    """Writes the current product list to inventory.json."""
     try:
         with open(INVENTORY_FILE, "w") as f:
-            f.write(f"Total: {total_inventory}\n")
-            f.write(f"History: {transaction_history}\n")
-        print("Order successfully saved to inventory.txt")
+            json.dump(products, f, indent=4)
+        print("Inventory saved successfully.\n")
     except IOError as e:
-        print(f"  ⚠️  Warning: could not save inventory ({e})")
+        print(f"  ⚠️  Warning: could not save inventory ({e})\n")
 
 
-def display_orders(transaction_history):
-    """Prints the current list of orders, if any."""
-    if not transaction_history:
+# ---------------------------------------------------------------------
+# Menu actions
+# ---------------------------------------------------------------------
+def display_all_products(products):
+    print("\nCurrent Inventory")
+    print("-" * 70)
+    if not products:
+        print("No products in inventory.")
+    for p in products:
+        print(f"ID: {p['id']} | Name: {p['name']} | Price: ${p['price']:.2f} | Stock: {p['stock']}")
+    print("-" * 70 + "\n")
+
+
+def add_product(products):
+    print("\nAdd New Product")
+    product_id = input("Product ID: ").strip()
+
+    if any(p["id"] == product_id for p in products):
+        print(f"  ❌ A product with ID {product_id} already exists.\n")
         return
-    print("Current Orders:\n")
-    for order_id, product_name, quantity in transaction_history:
-        print(f"{order_id}, {product_name}, {quantity}")
-    print()
+
+    name = input("Product Name: ").strip()
+
+    try:
+        price = float(input("Price: ").strip())
+        stock = int(input("Stock Quantity: ").strip())
+    except ValueError:
+        print("  ❌ Price must be a number and Stock Quantity must be a whole number. Product not added.\n")
+        return
+
+    products.append({"id": product_id, "name": name, "price": price, "stock": stock})
+    print("\nProduct added successfully!\n")
 
 
-def get_valid_input():
-    """
-    Prompts the user for a stock quantity.
-    Returns:
-        - an int if the entry is a valid, non-negative whole number
-        - the string "quit" if the user wants to stop
-        - None if the entry was invalid (caller should count it as failed)
-    """
-    user_input = input("Enter stock quantity: ")
+def update_stock(products):
+    print("\nUpdate Stock")
+    product_id = input("Enter Product ID to update: ").strip()
 
-    if user_input.lower() == "quit":
-        return "quit"
+    for p in products:
+        if p["id"] == product_id:
+            try:
+                new_stock = int(input(f"Enter new stock quantity for {p['name']}: ").strip())
+            except ValueError:
+                print("  ❌ Stock quantity must be a whole number. No changes made.\n")
+                return
+            p["stock"] = new_stock
+            print(f"\nStock updated successfully! {p['name']} now has {p['stock']} units.\n")
+            return
 
-    if not user_input.isdigit():
-        print(f"  ❌ Invalid entry: '{user_input}' is not a valid whole number.\n")
-        return None
-
-    quantity = int(user_input)
-
-    if quantity < 0:
-        print(f"  ❌ Invalid entry: {quantity} is negative. Stock cannot be negative.\n")
-        return None
-
-    return quantity
+    print(f"  ❌ No product found with ID {product_id}.\n")
 
 
-def process_delivery(current_total, new_value):
-    """Adds a new delivery to the running total and returns the new total."""
-    return current_total + new_value
+def search_product(products):
+    print("\nSearch Product")
+    query = input("Enter Product ID or Name: ").strip().lower()
+
+    matches = [p for p in products if query == p["id"].lower() or query in p["name"].lower()]
+
+    if matches:
+        print("\nMatching Products")
+        print("-" * 70)
+        for p in matches:
+            print(f"ID: {p['id']} | Name: {p['name']} | Price: ${p['price']:.2f} | Stock: {p['stock']}")
+        print("-" * 70 + "\n")
+    else:
+        print(f"  ❌ No product found matching '{query}'.\n")
 
 
-def calculate_tax(amount):
-    """Returns the tax owed on a single delivery amount (10% of that delivery)."""
-    return amount * TAX_RATE
-
-
-def generate_report(total_units, failed_attempts, deliveries_processed, total_tax, transaction_history):
-    """Prints the final end-of-session summary."""
-    print("\n=== End of Session Report ===")
-    print(f"Total Deliveries Processed: {deliveries_processed}")
-    print(f"Total Units Processed: {total_units}")
-    print(f"Total Tax Collected: {total_tax:.2f}")
-    print(f"Number of Failed/Rejected Entries: {failed_attempts}")
-    print(f"Transaction History: {transaction_history}")
+# ---------------------------------------------------------------------
+# Main program loop
+# ---------------------------------------------------------------------
+def print_menu():
+    print("----------- MENU -----------")
+    print("1. Display All Products")
+    print("2. Add Product")
+    print("3. Update Stock")
+    print("4. Search Product")
+    print("5. Save Inventory")
+    print("6. Exit")
+    print("-" * 28)
 
 
 def main():
-    total_inventory, transaction_history = load_inventory()
-    failed_entries = 0
-    deliveries_processed = 0
-    total_tax_collected = 0.0
-    next_order_id = max((order[0] for order in transaction_history), default=1000) + 1
+    print("=" * 50)
+    print("INVENTORY MANAGEMENT SYSTEM")
+    print("=" * 50 + "\n")
 
-    print("=== Smart Inventory Auditor (persistent_auditor) ===")
-    print("Enter stock quantities one at a time. Type 'quit' to finish.\n")
-    if total_inventory > 0:
-        print(f"📦 Loaded existing inventory: {total_inventory} units\n")
-
-    display_orders(transaction_history)
+    products = load_inventory()
 
     while True:
-        result = get_valid_input()
+        print_menu()
+        choice = input("\nEnter option: ").strip()
+        print()
 
-        if result == "quit":
-            save_inventory(total_inventory, transaction_history)
+        if choice == "1":
+            display_all_products(products)
+        elif choice == "2":
+            add_product(products)
+        elif choice == "3":
+            update_stock(products)
+        elif choice == "4":
+            search_product(products)
+        elif choice == "5":
+            save_inventory(products)
+        elif choice == "6":
+            save_inventory(products)
+            print("Exiting Inventory Management System. Goodbye!")
             break
-
-        if result is None:
-            failed_entries += 1
-            continue
-
-        quantity = result
-
-        product_name = input("Enter Product Name: ")
-
-        total_inventory = process_delivery(total_inventory, quantity)
-        deliveries_processed += 1
-
-        order_id = next_order_id
-        next_order_id += 1
-        transaction_history.append((order_id, product_name, quantity))
-
-        delivery_tax = calculate_tax(quantity)
-        total_tax_collected += delivery_tax
-
-        print(f"\nNew Order Added:\n{order_id},{product_name},{quantity}")
-        print(f"  ✅ Accepted. Delivery tax: {delivery_tax:.2f} | Running total: {total_inventory}\n")
-
-        if total_inventory > OVERSTOCK_LIMIT:
-            print(f"  🚨 OVERSTOCK ALERT: Inventory ({total_inventory}) exceeds limit of {OVERSTOCK_LIMIT}!")
-            print("  Rejecting further entries.\n")
-            break
-        elif total_inventory == OVERSTOCK_LIMIT:
-            print("  ⚠️  Inventory is exactly at capacity. Next entry will trigger an alert.\n")
-
-    generate_report(total_inventory, failed_entries, deliveries_processed, total_tax_collected, transaction_history)
+        else:
+            print("  ❌ Invalid option. Please enter a number between 1 and 6.\n")
 
 
 if __name__ == "__main__":
