@@ -15,8 +15,9 @@ import os
 from product import Product
 from inventory import Inventory
 
-INVENTORY_FILE = "inventory.json"
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INVENTORY_FILE = os.path.join(BASE_DIR, "inventory.json")
 
 # ---------------------------------------------------------------------
 # File Handling
