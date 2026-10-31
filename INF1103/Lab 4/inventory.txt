@@ -1,0 +1,2 @@
+Total: 112
+History: [(1001, 'Laptop', 2), (1002, 'Wire;ess Mouse', 10), (1003, 'Keyboard', 100)]
