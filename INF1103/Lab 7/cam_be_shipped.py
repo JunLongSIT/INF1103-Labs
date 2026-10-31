@@ -14,3 +14,4 @@ class CanBeShipped(ABC):
     def calculate_shipping_cost(self):
         """Returns the shipping cost. Implementing classes must provide this."""
         pass
+    
