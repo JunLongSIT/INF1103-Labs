@@ -1,0 +1,34 @@
+[
+    {
+        "id": "1001",
+        "name": "Laptop",
+        "price": 999.0,
+        "stock": 20,
+        "type": "physical",
+        "weight": 1.2
+    },
+    {
+        "id": "1002",
+        "name": "Operating System",
+        "price": 99.0,
+        "stock": 30,
+        "type": "digital",
+        "download_size": 4096.0
+    },
+    {
+        "id": "1003",
+        "name": "Mouse",
+        "price": 45.0,
+        "stock": 99,
+        "type": "physical",
+        "weight": 0.4
+    },
+    {
+        "id": "1004",
+        "name": "Cloud Service",
+        "price": 4.0,
+        "stock": 55,
+        "type": "digital",
+        "download_size": 4096.0
+    }
+]
