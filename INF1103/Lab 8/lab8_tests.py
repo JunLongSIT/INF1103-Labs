@@ -2,10 +2,6 @@
 lab8_tests.py
 -------------
 Test script for Lab 8: association, aggregation, composition, LSP, polymorphism.
-
-BEFORE you run each section, write your "Predict first" answer in your Word
-document. Run one section at a time by commenting out the others in the
-__main__ block at the bottom.
 """
 
 from supplier import Supplier
