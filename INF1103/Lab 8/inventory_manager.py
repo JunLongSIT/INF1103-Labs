@@ -23,11 +23,6 @@ from can_be_shipped import CanBeShipped
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INVENTORY_FILE = os.path.join(BASE_DIR, "inventory.json")
 
-# Used only for old inventory.json files saved before suppliers existed (Lab 7)
-DEFAULT_SUPPLIER_DATA = {"id": "S000", "name": "Unknown Supplier",
-                         "contact_email": "unknown@example.com"}
-
-
 # ---------------------------------------------------------------------
 # File Handling
 # ---------------------------------------------------------------------
