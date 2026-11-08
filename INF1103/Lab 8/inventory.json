@@ -1,0 +1,15 @@
+[
+    {
+        "id": "1001",
+        "name": "Laptop",
+        "price": 999.0,
+        "stock": 99,
+        "supplier": {
+            "id": "Asus244",
+            "name": "ASUS",
+            "contact_email": "asus@gmail.com"
+        },
+        "type": "physical",
+        "weight": 1.0
+    }
+]
