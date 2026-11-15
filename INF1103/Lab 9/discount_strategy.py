@@ -1,6 +1,4 @@
 """
-discount_strategy.py
---------------------
 Discount strategies (Strategy pattern).
 Responsibility (SRP): each class knows ONE way of discounting an order total.
 
