@@ -6,8 +6,10 @@ Responsibilities:
   - Ask the ProductFactory for Product objects (it never names a subclass)
   - Call the appropriate Inventory methods
   - File handling: load / save inventory.json (including product type and supplier)
+  - File handling: import products from products.csv, skipping invalid rows
 """
 
+import csv
 import json
 import os
 
@@ -20,6 +22,7 @@ from can_be_shipped import CanBeShipped
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INVENTORY_FILE = os.path.join(BASE_DIR, "inventory.json")
+PRODUCTS_FILE = os.path.join(BASE_DIR, "products.csv")
 
 # Used only for old inventory.json files saved before suppliers existed (Lab 7)
 DEFAULT_SUPPLIER_DATA = {"id": "S000", "name": "Unknown Supplier",
@@ -89,6 +92,48 @@ def save_inventory(inventory: Inventory) -> None:
         print(f"Inventory saved successfully to {INVENTORY_FILE}.\n")
     except IOError as e:
         print(f"  ⚠️  Warning: could not save inventory ({e})\n")
+
+
+def load_products(path: str, inventory: Inventory, supplier: Supplier) -> None:
+    """Reads products from a CSV file and adds them to the inventory.
+    Every product is created through the ProductFactory and given `supplier`.
+
+    try     : open the file
+    except  : the file does not exist -> simple message, no crash
+    else    : the file opened -> read the rows; one invalid row is reported
+              and skipped, and loading carries on
+    finally : always runs, whether the file was found or not"""
+    try:
+        file = open(path, newline="")
+    except FileNotFoundError:
+        print(f"Products file not found: {path}")
+    else:
+        with file:
+            reader = csv.reader(file)
+            next(reader, None)  # skip the header row
+            loaded = 0
+            # The header is line 1, so the first product is on line 2
+            for line_number, row in enumerate(reader, start=2):
+                if not row:
+                    continue  # ignore blank lines
+                try:
+                    product_type, product_id, name, price, stock = row
+                    product = ProductFactory.create(product_type, product_id, name,
+                                                    float(price), int(stock), supplier)
+                except ValueError as e:
+                    # Unknown product type, a price/stock that is not a number,
+                    # a value that fails validation, or the wrong number of columns
+                    print(f"Skipped line {line_number} {row}: {e}")
+                    continue
+
+                if inventory.add_product(product):
+                    loaded += 1
+                else:
+                    print(f"Skipped line {line_number} {row}: "
+                          f"product ID {product_id} already exists.")
+        print(f"{loaded} products loaded.")
+    finally:
+        print("Load attempt finished.")
 
 
 # ---------------------------------------------------------------------
@@ -245,6 +290,20 @@ def search_product_action(inventory: Inventory) -> None:
     print("-" * 50 + "\n")
 
 
+def import_products_action(inventory: Inventory) -> None:
+    print("\nImport Products from CSV")
+    print(f"File: {PRODUCTS_FILE}")
+    print("Every imported product is given the same supplier.")
+
+    supplier = ask_for_supplier(inventory)
+    if supplier is None:
+        return
+
+    print()
+    load_products(PRODUCTS_FILE, inventory, supplier)
+    print()
+
+
 # ---------------------------------------------------------------------
 # Menu System
 # ---------------------------------------------------------------------
@@ -255,7 +314,8 @@ def print_menu() -> None:
     print("3. Update Stock")
     print("4. Search Product")
     print("5. Save Inventory")
-    print("6. Exit")
+    print("6. Import Products from CSV")
+    print("7. Exit")
     print("-" * 28)
 
 
@@ -282,13 +342,15 @@ def main() -> None:
         elif choice == "5":
             save_inventory(inventory)
         elif choice == "6":
+            import_products_action(inventory)
+        elif choice == "7":
             print("Saving inventory before exit...")
             save_inventory(inventory)
             print("Thank you for using Inventory Management System.")
             print("Program terminated.")
             break
         else:
-            print("  ❌ Invalid option. Please enter a number between 1 and 6.\n")
+            print("  ❌ Invalid option. Please enter a number between 1 and 7.\n")
 
 
 if __name__ == "__main__":
