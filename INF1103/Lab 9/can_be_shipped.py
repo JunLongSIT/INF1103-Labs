@@ -1,0 +1,14 @@
+"""
+CanBeShipped interface (interface-style abstract base class).
+It is a contract only: any class that can be shipped must be able to
+calculate its shipping cost. No attributes or shipping details live here.
+"""
+
+from abc import ABC, abstractmethod
+
+
+class CanBeShipped(ABC):
+    @abstractmethod
+    def calculate_shipping_cost(self) -> float:
+        """Returns the shipping cost. Implementing classes must provide this."""
+        pass
