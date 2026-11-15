@@ -151,10 +151,6 @@ def add_product_action(inventory: Inventory) -> None:
         print("  ❌ Price must be a number and Stock Quantity must be a whole number. Product not added.\n")
         return
 
-    if stock < 0:
-        print("  ❌ Stock cannot be negative. Product not added.\n")
-        return
-
     supplier = ask_for_supplier(inventory)
     if supplier is None:
         return
@@ -168,9 +164,15 @@ def add_product_action(inventory: Inventory) -> None:
         print("  ❌ Weight / Download Size cannot be negative. Product not added.\n")
         return
 
-    # The factory decides which Product subclass to build
-    product = ProductFactory.create(product_type, product_id, name, price,
-                                    stock, supplier, size)
+    # The factory decides which Product subclass to build. The Product
+    # validates its own price and stock and raises ValueError if a rule is broken.
+    try:
+        product = ProductFactory.create(product_type, product_id, name, price,
+                                        stock, supplier, size)
+    except ValueError as e:
+        print(f"  ❌ {e} Product not added.\n")
+        return
+
     inventory.add_product(product)
     print("\nProduct added successfully!\n")
 
