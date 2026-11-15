@@ -1,4 +1,6 @@
 """
+discount_strategy.py
+--------------------
 Discount strategies (Strategy pattern).
 Responsibility (SRP): each class knows ONE way of discounting an order total.
 
@@ -57,3 +59,13 @@ class BulkDiscount(DiscountStrategy):
         if total >= self.__threshold:
             return total - self.__amount
         return total
+
+
+class StudentDiscount(DiscountStrategy):
+    """Takes a fixed 5% off for students.
+    Added in Section 2.4 WITHOUT changing the Order class."""
+
+    STUDENT_RATE: float = 0.05
+
+    def apply(self, total: float) -> float:
+        return total * (1 - self.STUDENT_RATE)
