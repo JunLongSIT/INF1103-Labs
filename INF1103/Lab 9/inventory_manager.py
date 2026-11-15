@@ -92,6 +92,37 @@ def save_inventory(inventory: Inventory) -> None:
 
 
 # ---------------------------------------------------------------------
+# Input helpers (keep asking until the value is usable)
+# ---------------------------------------------------------------------
+def get_positive_float(prompt: str) -> float:
+    """Asks until the user enters a number greater than zero.
+    float() raises ValueError for text such as "abc" (exception handling);
+    the if statement rejects zero and negatives (validation)."""
+    while True:
+        try:
+            value = float(input(prompt))
+            if value <= 0:
+                print("Please enter a number greater than zero.")
+                continue
+            return value
+        except ValueError:
+            print("Please enter a valid number, e.g. 12.50")
+
+
+def get_non_negative_int(prompt: str) -> int:
+    """Asks until the user enters a whole number that is zero or more."""
+    while True:
+        try:
+            value = int(input(prompt))
+            if value < 0:
+                print("Please enter a whole number that is zero or more.")
+                continue
+            return value
+        except ValueError:
+            print("Please enter a valid whole number, e.g. 10")
+
+
+# ---------------------------------------------------------------------
 # Menu actions (get input, call Inventory, print result)
 # ---------------------------------------------------------------------
 def find_existing_supplier(inventory: Inventory, supplier_id: str) -> Supplier | None:
@@ -144,12 +175,9 @@ def add_product_action(inventory: Inventory) -> None:
 
     name = input("Product Name: ").strip()
 
-    try:
-        price = float(input("Price: ").strip())
-        stock = int(input("Stock Quantity: ").strip())
-    except ValueError:
-        print("  ❌ Price must be a number and Stock Quantity must be a whole number. Product not added.\n")
-        return
+    # Do not carry on with incomplete data: ask again until both are valid
+    price = get_positive_float("Price: ")
+    stock = get_non_negative_int("Stock Quantity: ")
 
     supplier = ask_for_supplier(inventory)
     if supplier is None:
@@ -190,11 +218,7 @@ def update_stock_action(inventory: Inventory) -> None:
     print(f"Name: {product.get_name()}")
     print(f"Current Stock: {product.get_stock()}\n")
 
-    try:
-        new_stock = int(input("New Stock Quantity: ").strip())
-    except ValueError:
-        print("  ❌ Stock quantity must be a whole number. No changes made.\n")
-        return
+    new_stock = get_non_negative_int("New Stock Quantity: ")
 
     if inventory.update_stock(product_id, new_stock):
         print("\nStock updated successfully!\n")
