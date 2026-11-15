@@ -1,0 +1,54 @@
+[
+    {
+        "id": "1001",
+        "name": "Laptop",
+        "price": 999.0,
+        "stock": 99,
+        "supplier": {
+            "id": "Asus244",
+            "name": "ASUS",
+            "contact_email": "asus@gmail.com"
+        },
+        "type": "physical",
+        "weight": 1.0
+    },
+    {
+        "id": "P001",
+        "name": "Desk Lamp",
+        "price": 25.0,
+        "stock": 10,
+        "supplier": {
+            "id": "Asus234",
+            "name": "Asus",
+            "contact_email": "Asus@gmail.com"
+        },
+        "type": "physical",
+        "weight": 0.0
+    },
+    {
+        "id": "D001",
+        "name": "Photo Editor",
+        "price": 49.9,
+        "stock": 100,
+        "supplier": {
+            "id": "Asus234",
+            "name": "Asus",
+            "contact_email": "Asus@gmail.com"
+        },
+        "type": "digital",
+        "download_size": 0.0
+    },
+    {
+        "id": "P003",
+        "name": "Monitor Stand",
+        "price": 39.5,
+        "stock": 7,
+        "supplier": {
+            "id": "Asus234",
+            "name": "Asus",
+            "contact_email": "Asus@gmail.com"
+        },
+        "type": "physical",
+        "weight": 0.0
+    }
+]
